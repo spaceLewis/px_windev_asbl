@@ -1,0 +1,190 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : BitmapAvecPtr
+ major_version : 26
+ minor_version : 0
+ type : 4
+ description : ""
+ subtype : 0
+class :
+ identifier : 0x1b76c21402434522
+ internal_properties : BgAAAAYAAAB2/vstTMCJbS/hlxjFxirSqKvCUuv8YxgpWyl7S3iA
+ code_elements :
+  internal_properties : BgAAAAYAAACmcEcPUOl8P88f4DqAteA6m/Mt111GGOClrNjaLJ9vO63bNEtdrqYoCCnjX1eG34p8AOi72Du5JSuppQ==
+  type_code : 10
+  p_codes :
+   -
+     code : |1+
+      BitmapAvecPtr est une Classe
+      	// taille de la bitmap
+      	largeur est un entier
+      	hauteur est un entier
+      	// pointeur sur les pixels
+      	pointeurSurPixel est un entier système
+      	largeur1Ligne est un entier // taille d'une ligne en octets
+      	// objet GDI nécessaire
+      	hdcSource est un entier système
+      	hDCMem est un entier système
+      	hBitmap est entier système
+      	holdbmp est entier systeme
+      FIN
+       
+      BITMAP  est une structure
+      	bmType est un entier;  
+      	bmWidth est un entier;    
+      	bmHeight est un entier;   
+      	bmWidthBytes est un entier;  
+      	bmPlanes est un entier sur 2 octet
+      	bmBitsPixel est un entier sur 2 octet
+      	bmBits est un entier système
+      fin
+      BITMAP64  est une structure 
+      	bmType			est un entier;  
+      	bmWidth			est un entier;    
+      	bmHeight		est un entier;   
+      	bmWidthBytes	est un entier;  
+      	bmPlanes		est un entier sur 2 octet
+      	bmBitsPixel		est un entier sur 2 octet
+      	bmBits			est un entier système
+      	padding			est un entier // 4 octets de padding en 64 bits
+      FIN
+      
+      
+      
+      BITMAPINFOHEADER  est une structure
+      	biSize is int
+      	biWidth is int
+      	biHeight is int
+      	biPlanes is 2-byte int
+      	biBitCount is 2-byte int
+      	biCompression is int
+      	biSizeImage is int
+      	biXPelsPerMeter is int
+      	biYPelsPerMeter is int
+      	biClrUsed is int
+      	biClrImportant is int
+      END
+      COLORBYTES is structure
+      	B is 1-byte unsigned int 
+      	G is 1-byte unsigned int
+      	R is 1-byte unsigned int
+      	Alpha is 1-byte unsigned int
+      END
+      
+      BITMAPINFO is structure
+      	bmiHeader is BITMAPINFOHEADER // BITMAPINFOHEADER est une autre structure
+      	bmiColors is COLORBYTES	// Alias RGBQUAD
+      END
+      
+      
+      CONSTANT
+      	DIB_RGB_COLORS = 0x00
+      	SRCCOPY 		= 0x00CC0020
+      FIN
+     type : 131072
+  procedures :
+   -
+     name : Constructeur
+     internal_properties : BgAAAAYAAAC1A4H9EqMww5sdqiE5T3g3Dy6pG6fybxVtk8Ieijlb2Szt1K2T7XC9aTWIUaKux55oPJJM0bwnJbyOntusj2Uo980/XxRrur8gZsxn7yuDizW3eSZM7aEvkNMRd1o+1GkIbPmHnbf+RxVriVBVTg1k1i0vFts1SRyVrff5SFSCQPT5W5X1C82iMsK9jdzMJ9He1WQtcdwcwuKUyqsKQCCSlZJswap1YWjYZllwQqCqgIic
+     procedure_id : 1978982477469074722
+     type_code : 27
+     code : |1+
+      PROCEDURE Constructeur(hdc est un entier système, _l entier, _h entier)
+      
+      :hdcSource = hdc
+      
+      // copie des dimensions
+      :largeur = _l
+      :hauteur = _h
+      
+      // création d'un HDC pour mettre la bitmap mémoire
+      hDCMem = API("Gdi32", "CreateCompatibleDC", hdc )
+      
+      // Initialisation structure de création de la bitmap mémoire
+      bi est BITMAPINFO
+      bi.bmiHeader.biSize     = Dimension(bi);
+      bi.bmiHeader.biWidth    = :Largeur
+      bi.bmiHeader.biHeight   = -:Hauteur  // négatif pour que  (0,0) doit en haut a gauche
+      bi.bmiHeader.biPlanes   = 1;
+      bi.bmiHeader.biBitCount = 24;
+      bi.bmiHeader.biSizeImage = (3 * :Largeur * :Hauteur)
+      
+      // création bitmap 
+      :hBitmap  = API( "Gdi32", "CreateDIBSection", hDCMem, &bi, DIB_RGB_COLORS,  &pointeurSurPixel, NULL, 0);
+      dbgAssertion(hBitmap<>0)
+      dbgAssertion(pointeurSurPixel<>0)
+      
+      si EnMode64bits() ALORS
+      	stBitmap64 est BITMAP64
+      	API("Gdi32", "GetObjectW",:hBitmap, Dimension(stBitmap64),&stBitmap64 )
+      	:largeur1Ligne = stBitmap64.bmWidthBytes
+      sinon
+      	stBitmap est BITMAP
+      	API	("Gdi32", "GetObjectW",:hBitmap, Dimension(stBitmap),&stBitmap )
+      	:largeur1Ligne = stBitmap.bmWidthBytes
+      fin
+      dbgAssertion(:largeur1Ligne<>0)
+      
+      // sélection dans le dc
+      :holdbmp = API( "Gdi32", "SelectObject", :hDCMem, :hBitmap )
+     type : 589824
+   -
+     name : CopieDepuisSource
+     procedure_id : 1978982477469140258
+     type_code : 12
+     code : |1+
+      
+      
+     type : 458752
+   -
+     name : Destructeur
+     internal_properties : BgAAAAYAAAAF/2V6k/PzcP0px0UBdKiOs5641Lne8AHWfAapyYZqlJH6yaqElVCA9lxGQ12R4QEiN4pV1aTTp2SUgdUxp1WqdcwmiM5w5fxg64j0UyQBXetKI0gmvSuJOLoAESX0xcGik57ZjBFoo87yGES8NOgwfLiKFITrX5R8gD7jSbJr7gxQ8Gv+mWt2e8GEuZ3cmOx5SsHvjEXCCP4csSY6xSKV0EYgpasvUzw0e9GmWsLc7Y1a9g==
+     procedure_id : 1978982477469205794
+     type_code : 28
+     code : |1+
+      PROCEDURE Destructeur()
+      
+      // restaure la sélection dans le dc
+       API( "Gdi32", "SelectObject", :hDCMem, :holdbmp )
+       // libération des objets GDI crées
+       API( "Gdi32", "DeleteObject", :hBitmap  )
+       API( "Gdi32", "DeleteDC", 	   :hDCMem )
+     type : 655360
+   -
+     name : CopieVersEcran
+     internal_properties : BgAAAAYAAADhOeNfW8doR8SJTXLHpySMYqUFGSDXBzJxbLhj9k9P7M7Tv5VJGBvAMAofeyHPcs2jsqo6SXbBQ44OxSW7nAWEbBwGqbOk+XirWLZm0rYNYu94cVRJ7aSfvnH3BgedU36I+2WMUOCSaZ7jyY1KfVZn5A5pG/QoA/yGnYe4PZNLhlnhTj/fWYPCYBduVkKl3OAYV+ua
+     procedure_id : 1978982477469271330
+     type_code : 12
+     code : |1+
+      procédure CopieVersEcran()
+      API( "Gdi32","BitBlt",  ...
+      	 :hdcSource,0,0, :Largeur, :Hauteur, ... 
+      	 :hDCMem,0,0,...
+      	 SRCCOPY )
+      	 
+     type : 458752
+   -
+     name : CopieVersMémoire
+     internal_properties : BgAAAAYAAADhOeNfW8doR8SJTXLHpySMYqUFGSDXBzJxbLhj9k9P7M7Tv5VJGBvAMAofeyHPcs2jsqo6SXbBQ44OxSW7nAWEbBwGqbOk+XirWLZm0rYNYu94cVRJ7aSfvnH3BgedU36I+2WMUOCSaZ7jyY1KfVZn5A5pG/QoA/yGnYe4PZNLhlnhTj/fWYPCYBduVkKl3OAYV+ua
+     procedure_id : 1978982477469336866
+     type_code : 12
+     code : |1+
+      procédure CopieVersMémoire()
+      API( "Gdi32","BitBlt",  ...
+      	 :hDCMem,0,0, :Largeur, :Hauteur, ... 
+      	 :hdcSource,0,0,...
+      	 SRCCOPY )
+      
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : BgAAAAYAAAA6ih3UbgNXHwTtiPSFUEj+2fi/m7v4QV2rqidAupM=
+  original_name : Classe1
+resources :
+ string_res :
+  identifier : 0x1b73e2d501215c5f
+  internal_properties : BgAAAAYAAAAnMYFQ1bL/vz9ehh7L22SNNSlIzGTOI8h5F/WtgDNP
+custom_note :
+ internal_properties : BgAAAAYAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ

@@ -1,0 +1,231 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : AllocateurDeMemExecutable
+ major_version : 26
+ minor_version : 0
+ type : 4
+ description : ""
+ subtype : 0
+class :
+ identifier : 0x1b6542580025881d
+ internal_properties : BgAAAAYAAAB2/vstTMCJbS/hlxjFxirSqKvCUuv8YxgpWyl7S3iA
+ code_elements :
+  internal_properties : BgAAAAYAAACmcEcPUOl8P88f4DqAteA6m/Mt111GGOClrNjaLJ9vO63bNEtdrqYoCCnjX1eG34p8AOi72Du5JSuppQ==
+  type_code : 10
+  p_codes :
+   -
+     code : |1-
+      AllocateurDeMemExecutable est une Classe
+      	// pointeur sur le bloc de mémoires alloué + sa taille
+      	pMemAllouée est entier système
+      	nTailleMemAllouée est un entier
+      	// fin du bloc en cours et taille disponible dedans
+      	pMemDispo    est un entier système
+      	nTailleDispo est entier
+      FIN
+      
+      // constantes pour les API WIN32 VirtualAlloc, VirtualProtect,  VirtualFree 
+      CONSTANT
+      	MEM_COMMIT  	=            0x00001000 
+      	MEM_RESERVE	 	=            0x00002000 
+      	
+      	PAGE_EXECUTE 			=	0x10
+      	PAGE_READWRITE			=	0x04
+      	PAGE_EXECUTE_READWRITE 	=   0x40 
+      	
+      	MEM_RELEASE				= 0x8000
+      FIN 
+      
+      constant nTAILLE_MAX = 2 * 1024 * 1024 // 2 MO max pour tout le code
+      CONSTANT LIBC_LINUX  = "libc.so.6"
+     type : 131072
+  procedures :
+   -
+     name : Constructeur
+     procedure_id : 1974056957398911005
+     type_code : 27
+     code : |1+
+      PROCEDURE Constructeur()
+      
+      
+     type : 589824
+   -
+     name : Destructeur
+     procedure_id : 1974056957398976541
+     type_code : 28
+     code : |1+
+      PROCEDURE Destructeur()
+      // libération
+      si pMemAllouée<>0
+      	_Free( :pMemAllouée  )
+      FIN
+      
+     type : 655360
+   -
+     name : pNouvelleZoneExecutable
+     procedure_id : 2181350611893692901
+     type_code : 12
+     code : |1-
+      // renvoie une zone de mémoire exécutable. max 1 page (16 ko) + taille dispo dedans
+      PROCÉDURE pNouvelleZoneExecutable( ) : (entier système, entier)
+      
+      // alloc au 1er appel
+      si :pMemAllouée= 0 ALORS
+      	:nTailleMemAllouée = nTAILLE_MAX // 2 MO
+      	:pMemAllouée       = :_pAlloueNouveauBloc(:nTailleMemAllouée)
+      	dbgAssertion(:pMemAllouée<>0,"Plus de mémoire")
+      	// on commence a renvoyer de la mémoire a partir de <>
+      	:pMemDispo    = :pMemAllouée
+      	:nTailleDispo = :nTailleMemAllouée
+      fin
+      
+      renvoyer (:pMemDispo, :nTailleDispo)
+     type : 458752
+   -
+     name : bReserveZoneExecutable
+     procedure_id : 1974057197917201164
+     type_code : 12
+     code : |1+
+      // réserve/alloue une zone de mémoire exécutable
+      procédure bReserveZoneExecutable( pMemDebut entier système,  local tailleCode est un entier) : booléen
+      
+      dbgAssertion(:pMemDispo = pMemDebut ) // on doit allouer a l'adresse renvoyée par _pNouvelleZoneExecutable()
+      
+      // multiple de 8
+      si  modulo(tailleCode,8)<>0
+      	tailleCode = tailleCode + 8 - modulo(tailleCode,8)
+      fin
+      
+      // si pas assez de place dans le bloc en cours
+      si nTailleDispo<tailleCode alors
+      	// pb
+      	dbgAssertion(faux, "dépassement")
+      	renvoyer faux
+      FIN
+      
+      // on avance dans ce qui est dispo
+      :pMemDispo			 += tailleCode 
+      :nTailleDispo		 -= tailleCode
+      renvoyer vrai
+     type : 458752
+   -
+     name : _nGetTailleBlocAlloc
+     internal_properties : BgAAAAYAAAAKHNq3yY48rgSr2ILmUIqfjgA/dEWDxaJvEMqBTaEUWGZNy1ocN4MRvd37unOayJrn9FqloZaFFfgIZ8h37Jw+vUFPnTJ7DK9bLp3VPdCgogIqSdu4lx3p2EmGa4hzcGpZZS3hK1RBLcbdWnZHhT3tx1h1MuW2OApUXX6j4Fme+pBhMPo052aUSmtzA4u4ANgqE8Kbqw==
+     procedure_id : 1974057485680077261
+     type_code : 12
+     code : |1+
+      // récup de la taille de bloc de mémoire
+      procéduré privée _nGetTailleBlocAlloc() : entier
+      
+      // en linux il faut utiliser sysconf(). 
+      SI EnModeLinux() ALORS
+      	// pagesize = sysconf(_SC_PAGE_SIZE);
+      //	soit _SC_PAGE_SIZE = 11
+      //	dbgSortieStandard("avant API..."+RC)
+      //	taillePage est un entier sur 8 octets = API(LIBC_LINUX,"sysconf", _SC_PAGE_SIZE)
+      //	dbgAssertion(taillePage<>0)
+      //	dbgSortieStandard("taillePage = "+taillePage+RC)
+      	renvoyer 4096
+      FIN
+      
+      // renvoie la taille d'un page de mémoire
+      SYSTEM_INFO  est composé de
+      	wProcessorArchitecture est un entier sur 2 octets
+      	wReserved			   est un entier sur 2 octets
+      	dwPageSize 	   est un entier sur 4 octets
+      	lpMinimumApplicationAddress est entier système
+      	lpMaximumApplicationAddress est entier système
+      	dwActiveProcessorMask est entier système
+      	dwNumberOfProcessors est entier sur 4 sans signe
+      	dwProcessorType est entier sur 4 sans signe
+      	dwAllocationGranularity est entier sur 4 sans signe
+      	wProcessorLevel est entier sur 2 sans signe
+      	wProcessorRevision est entier sur 2 sans signe
+      FIN
+      API("kernel32.dll","GetSystemInfo", &SYSTEM_INFO)
+      tailleCode est un entier = SYSTEM_INFO.dwPageSize;
+      
+      renvoyer tailleCode
+     type : 458752
+   -
+     name : _pAlloueNouveauBloc
+     internal_properties : BgAAAAYAAABDS3LPOh/XCVA4u3QQi+DqRv+VtXZxzK036ZXBDF4czXhQ0nUMlG3yIJeQVxtJw4yqBpoK2ht6MaX0B7B7641pRE5JRyKy7jTlxBXNdgEld8XfeI5eKM22AzWIkKGR3gCRLV6iivobIti2eKlyMaiZlQ6ovTyMIj/mXhjgQZvFRdfaVCxs3PznV8G6iKHnwpPEbPXQ7nZldzYim+EOVHgBtIp8wTe7y4E6GckX/SCatCijrzm5xjjX4zfttks7l7JQ0A==
+     procedure_id : 1974058306018890444
+     type_code : 12
+     code : |1+
+      // allocation d'un nouveau bloc de taille <nTailleAlloc> et ajout dans <tabBlocAlloué>
+      Procédure privée _pAlloueNouveauBloc( nTailleAlloc entier ) : entier système
+      dbgAssertion(nTailleAlloc>0)
+      
+      // doit être un multiple de <nTailleBloc>
+      nTailleBloc est un entier = _nGetTailleBlocAlloc()
+      SI  modulo(nTailleBloc,8)<>0
+      	nTailleAlloc = nTailleAlloc + nTailleBloc - modulo(nTailleAlloc,nTailleBloc)
+      FIN
+      
+      p est entier système
+      
+      // en linux il faut utiliser mprotect(). 
+      si EnModeLinux() ALORS
+      
+      
+      	// allocation d'un buffer aligé de taille <nTailleAlloc>
+      	// buffer = memalign(pagesize, 4 * pagesize);
+      	p = api(LIBC_LINUX,"memalign", nTailleAlloc)
+      	si(p=0) ALORS
+      		dbgAssertion(Faux,"Echec de memalign() "+rc+erreurInfo())
+      		renvoyer 0
+      	FIN
+      	
+      	retcode est entier 
+      	soit PROT_READ  = 0x04 
+      	soit PROT_WRITE = 0x02 
+      	soit PROT_EXEC  = 0x01
+      	// = mprotect(buffer + pagesize * 2, pagesize,
+      	retcode =API(LIBC_LINUX, "mprotect", p, nTailleAlloc, PROT_READ + PROT_EXEC + PROT_WRITE )
+      	dbgAssertion(p<>0)
+      	 
+      	renvoyer p
+      	
+      	
+      FIN
+      
+      
+      // alloc RAM pour le code
+      // NB :PAGE_READWRITE + PAGE_EXECUTE échoue ici, alors on le fait en 2 étapes
+      //#define MEM_DECOMMIT                0x00004000  
+      p = API("kernel32.dll","VirtualAlloc", 0, nTailleAlloc, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)
+      dbgAssertion(p<>0)
+      
+      // modification des flags de protection de la zone
+      NewProtect  est un entier sur 4 octets sans signe =PAGE_EXECUTE_READWRITE
+      OldProtect  est un entier sur 4 octets sans signe =0
+      bok est un booléen = API("kernel32.dll","VirtualProtect",p,nTailleAlloc, NewProtect, &OldProtect)
+      dbgAssertion(bok)
+      
+      // renvoie la zone exécutable de taille <:nTailleBloc>
+      renvoyer p
+     type : 458752
+   -
+     name : _Free
+     internal_properties : BgAAAAYAAAByVIKv4RaTwHJXEOjQ8MpfMNAVaCOd3QTlNKrPbzF8aKT57TICVR8f+7lnaB0CEMK5ZGzdExj1Ox6kn5LtkOiiXxH12eQBEC3pYtbGNOOfxSfZ8JAbKqp64QITZJ8GJ41abOQKIpMSCrti8wcu6JBcpL+Mb5hZ5U+hSjMUD+wNdX3ckxsbHp+9uwykMM4fmHBCK+rjUw==
+     procedure_id : 1974062085590205070
+     type_code : 12
+     code : |1-
+      // libération d'un bloc alloué par _pAlloueNouveauBloc()
+      procédure privée _Free( p entier système)
+      
+      API("kernel32.dll","VirtualFree", p, 0, MEM_RELEASE  )
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : BgAAAAYAAAA6ih3UbgNXHwTtiPSFUEj+2fi/m7v4QV2rqidAupM=
+  original_name : Classe1
+resources :
+ string_res :
+  identifier : 0x1b6542350022fee8
+  internal_properties : BgAAAAYAAAAnMYFQ1bL/vz9ehh7L22SNNSlIzGTOI8h5F/WtgDNP
+custom_note :
+ internal_properties : BgAAAAYAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ

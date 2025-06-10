@@ -1,0 +1,78 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : WDAssembleur
+ major_version : 26
+ minor_version : 0
+ type : 7
+ description : ""
+ subtype : 0
+procedure_set :
+ identifier : 0x1b65b0da0072368d
+ internal_properties : BgAAAAYAAABGLu41kG7fjQV3iS4F72qmnKaNh5694reolNKIW0iw
+ code_elements :
+  internal_properties : BgAAAAYAAAC8Sl0pfseidXE9/kBmawagKU2LQSv8bn6/vNDKIJF1LaO5OrXnJBCSprdxyfnkeSCSHo4FglHTPzGvuw==
+  type_code : 31
+  p_codes :
+   -
+     code : |1-
+      
+      clAsm est AssembleurX86
+      
+      // Erreur levée si pb de compilation
+      CONSTANT ERR_COMPILATION_ASM = 733
+     type : 720896
+   -
+     code : |1-
+      
+     type : 720898
+  procedures :
+   -
+     name : compileAsmX86
+     procedure_id : 1974178960244996302
+     type_code : 15
+     code : |1+
+      // compile un code au format assemleur x86
+      // renvoie la procédure exécutable a appeler.
+      Procédure compileAsmX86( sCodeAsm est chaine,  sNomProcedurePrincipale chaine="") : procédure
+      
+      tabSymboleExterne est un tableau associatif d'entiers système
+      renvoyer  clAsm.compileX86( sCodeAsm, sNomProcedurePrincipale, tabSymboleExterne )
+      
+     type : 458752
+   -
+     name : compileAsmX86_API
+     procedure_id : 2119897803268269690
+     type_code : 15
+     code : |1+
+      // compile un code au format assemleur x86
+      // renvoie l'adresse a utiliser pour appeler API(  )
+      procédure compileAsmX86_API( sCodeAsm est chaine, sNomProcedurePrincipale chaine="") : (entier systeme, chaine)
+      
+      tabSymboleExterne est un tableau associatif d'entiers système
+      RENVOYER  clAsm._pcompileX86( sCodeAsm, sNomProcedurePrincipale, tabSymboleExterne )
+      
+     type : 458752
+   -
+     name : compileAsmX86_API_AvecSymboles
+     procedure_id : 2185013995656804692
+     type_code : 15
+     code : |1+
+      // compile un code au format assemleur x86
+      // renvoie l'adresse a utiliser pour appeler API(  )
+      procédure compileAsmX86_API_AvecSymboles( sCodeAsm est chaine, sNomProcedurePrincipale chaine, tabSymboleExterne est un tableau associatif d'entiers système) : (entier systeme, chaine)
+      
+      
+      RENVOYER  clAsm._pcompileX86( sCodeAsm, sNomProcedurePrincipale, tabSymboleExterne )
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : BgAAAAYAAAA6ih3UbgNXHwTtiPSFUEj+2fi/m7v4QV2rqidAupM=
+  original_name : ProcéduresGlobales1
+resources :
+ string_res :
+  identifier : 0x1b65b0d300701b06
+  internal_properties : BgAAAAYAAAAnMYFQ1bL/vz9ehh7L22SNNSlIzGTOI8h5F/WtgDNP
+custom_note :
+ internal_properties : BgAAAAYAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ

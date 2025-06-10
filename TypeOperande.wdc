@@ -1,0 +1,453 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : TypeOperande
+ major_version : 26
+ minor_version : 0
+ type : 4
+ description : ""
+ subtype : 0
+class :
+ identifier : 0x1df0087704be7f6c
+ internal_properties : BgAAAAYAAAB2/vstTMCJbS/hlxjFxirSqKvCUuv8YxgpWyl7S3iA
+ code_elements :
+  internal_properties : BgAAAAYAAACNovAR/6wlbzaEqZKonmKDsGl7Rn8TkHgPwmc47oRyHw6EhVIibzyTXadfYBW+Q4H7MZWHaJK0noShW6PGX6LdwmapNHiz0d3HvkCuynozZjwggdQAKPdQL8c=
+  type_code : 10
+  p_codes :
+   -
+     code : |1+
+      TypeOperande est une Classe
+      	nomType est chaine // ex: r32 ou R:r32/m32
+      FIN
+      
+     type : 131072
+  procedures :
+   -
+     name : Constructeur
+     procedure_id : 2157233528784256876
+     type_code : 27
+     code : |1+
+      PROCEDURE Constructeur()
+     type : 589824
+   -
+     name : Destructeur
+     procedure_id : 2157233528784322412
+     type_code : 28
+     code : |1+
+      PROCEDURE Destructeur()
+     type : 655360
+   -
+     name : bEstcompatibleAvecValeur
+     internal_properties : BgAAAAYAAAAKHNq3yY7sDkTLeKJmkOo/joBf1AVjBcIvsKohzeF0eKaN6zrcF8Nx/T1bGjMa6PpndHoFYfbFtTjoh2h3LHxePUGvvTLbzI+bjm1l7eBQ8tJ6eSsIZ+05aHlW+3hDILpp9Z0x+ySR/ZYNKkZ31a391+hlwvVGSBqkjc4zUKnOSqDxIMqE93akWhtD03vIANgqE8Kbqw==
+     procedure_id : 2157233528784387948
+     type_code : 12
+     code : |1+
+      Procédure bEstcompatibleAvecValeur( valeurParam est ValeurOpérande,  contexte est ContexteCompilation dynamique): booléen
+      
+      // si c'est exactement le registre de la syntaxe
+      // ex : PUSH cs
+      si nomType<>"r8" _et_ bEstRegistre( nomType) 
+      	si valeurParam.bEstModeRegistreDeNom( nomType ) ALORS
+      		renvoyer vrai
+      	sinon
+      		renvoyer faux
+      	fin
+      FIN
+      
+      // type registre généraux comme EAX,ECX ou RAX,RCX,R9 selon le mode 32 ou 64 bits.
+      REGISTRE_32ou64 est chaine = REGISTRE_32BITS
+      SI contexte.compilateur.b64Bits() ALORS
+      	REGISTRE_32ou64 = REGISTRE_64BITS
+      FIN
+      
+      
+      // selon le type voulu pour le paramètre
+      SELON nomType
+      	CAS	 REGISTRE_8BITS 
+      		RENVOYER valeurParam.bEstModeRegistreDeType( REGISTRE_8BITS )
+      	CAS	REGISTRE_16Ou2BITS, REGISTRE_16Ou32ou64BITS
+      		si contexte.tailleOpérande = 16 ALORS
+      			RENVOYER valeurParam.bEstModeRegistreDeType( REGISTRE_16BITS )
+      		FIN
+      		// cas 65 bits 
+      		SI contexte.compilateur.b64Bits() ALORS
+      			SI  nomType=REGISTRE_16Ou32ou64BITS  ALORS
+      				// MOV EAX,1 est légal en 64 bits
+      				SI valeurParam.bEstModeRegistreDeType( REGISTRE_32BITS ) ALORS
+      					RENVOYER Vrai
+      				FIN
+      			FIN
+      			// 32 et 64 acceptés en 64 bits
+      			RENVOYER valeurParam.bEstRegistre64Bits()	_OU_ ...
+      					 valeurParam.bEstRegistre32Bits() 
+      		FIN		
+      		RENVOYER valeurParam.bEstRegistre32Bits() 
+      	CAS	REGISTRE_32BITS
+      		SI contexte.compilateur.b64Bits() ALORS
+      			// 32 et 64 acceptés en 64 bits
+      			RENVOYER valeurParam.bEstRegistre64Bits() _ou_ ...
+      			         valeurParam.bEstRegistre32Bits() 
+      		FIN
+      		RENVOYER valeurParam.bEstRegistre32Bits() 
+      	
+      
+      	cas REGISTRE_STATUS
+      		RENVOYER valeurParam.bEstModeRegistreDeType( REGISTRE_STATUS ) 
+      	cas REGISTRE_CONTROL
+      		RENVOYER valeurParam.bEstModeRegistreDeType( REGISTRE_CONTROL )
+      	cas REGISTRE_DEBUG
+      		RENVOYER valeurParam.bEstModeRegistreDeType( REGISTRE_DEBUG )
+      		
+      	cas IMMEDIATE_8BITS
+      		RENVOYER valeurParam.bEstModeValeurImmediate() _et_ valeurParam.valeurImmediate<=0xFF
+      	CAS IMMEDIATE_16BITS
+      		RENVOYER valeurParam.bEstModeValeurImmediate() _ET_ valeurParam.valeurImmediate<=0xFFFF
+      	cas IMMEDIATE_16ou32BITS
+      		// en 64 bits veut dire "taille native"
+      		SI contexte.compilateur.b64Bits() ALORS
+      			RENVOYER valeurParam.bEstModeValeurImmediate() // toutes valeurs OK
+      		FIN
+      		RENVOYER valeurParam.bEstModeValeurImmediate() _ET_ valeurParam.valeurImmediate<=0xFFFFFFFF
+      	cas IMMEDIATE_16ou32ou64BITS
+      		SI contexte.compilateur.b64Bits() ALORS
+      			RENVOYER valeurParam.bEstModeValeurImmediate() 
+      		FIN		
+      		RENVOYER valeurParam.bEstModeValeurImmediate() _ET_ valeurParam.valeurImmediate<=0xFFFFFFFF
+      	cas MOD_REG_RM_64BITS
+      		// registres 64 bits OK en 64 bits uniquement
+      		si pas contexte.compilateur.b64Bits() ALORS
+      			renvoyer faux
+      		FIN
+      		SI valeurParam.bEstModeIndirection() _ET_ valeurParam.sGetType() = REGISTRE_32ou64 ALORS
+      			RENVOYER Vrai
+      		FIN
+      		SI nomType<>MOD_REG_RM_32BITS _ET_ contexte.tailleOpérande = 16 ALORS
+      			RENVOYER valeurParam.bEstModeRegistreDeType( REGISTRE_16BITS )
+      		FIN		
+      		RENVOYER valeurParam.bEstModeRegistreDeType( REGISTRE_32ou64 )		
+      	
+      	cas MOD_REG_RM_32BITS, MOD_REG_RM_16_OU_32BITS
+      		si valeurParam.bEstModeIndirection() _ET_ valeurParam.sGetType() = REGISTRE_32ou64 ALORS
+      			renvoyer vrai
+      		FIN
+      		SI nomType<>MOD_REG_RM_32BITS _ET_ contexte.tailleOpérande = 16 ALORS
+      			RENVOYER valeurParam.bEstModeRegistreDeType( REGISTRE_16BITS )
+      		FIN		
+      		// en 64 bits les registres 32 sont OK, on omets le préfixe REX
+      		SI contexte.compilateur.b64Bits() ALORS
+      			si valeurParam.bEstModeRegistreDeType( REGISTRE_32BITS ) ALORS
+      				renvoyer vrai
+      			FIN
+      		FIN
+      		// OK si registre la taille par défaut
+      		RENVOYER valeurParam.bEstModeRegistreDeType( REGISTRE_32ou64 )
+      	cas MOD_REGISTRE_OU_INDIRCET_8BITS
+      		// inc [ebx] est OK par ex. veut dire incrémenter l'octet en [Ebx]
+      		SI valeurParam.bEstModeIndirection() _et_ valeurParam.sGetType() = REGISTRE_32ou64 ALORS
+      		    SI valeurParam.taillePtr<>0 _et_ valeurParam.taillePtr<>8 ALORS
+      		    	// cas "inc [ebx]" (FE) qui veut dire inc byte ptr [ebx] 
+         		    	renvoyer faux
+      		    fin
+      			
+      			RENVOYER Vrai
+      		FIN
+      		// al,bh,cl,dl, ah,dh,ch, ...
+      		RENVOYER valeurParam.bEstRegistre8Bits()
+      		
+      	cas INDIRECT_REL_8BIT, INDIRECT_REL_16ou32BIT:
+      		// non supporté
+      		renvoyer faux
+      	
+      	cas RELATIF_8BIT
+      		// doit être un label
+      		si pas  valeurParam.bEstModeLabel() ALORS
+      			renvoyer faux
+      		FIN
+      		// doit être a moins de 127 octets
+      		sLabel est chaine = valeurParam.label
+      		si contexte.tabSymboleRencontré[sLabel]..existe alors
+      			offset est un entier = contexte.tabSymboleRencontré[sLabel].offset
+      			si offset- contexte.nOffsetDest > -127 + 2 alors
+      				renvoyer vrai // OK
+      			FIN
+      		fin
+      		// label après ou inconnu, on force sur 32 bits
+      		renvoyer faux
+      			
+      		
+      	cas RELATIF_16ou32
+      		// les labels sont toujours OK car relatif a +/- 32 bits
+      		si valeurParam.bEstModeLabel() ALORS
+      			renvoyer vrai
+      		FIN
+      		// cas de "CALL 7E0123456412h"
+      		si valeurParam.bEstModeValeurImmediate() ALORS
+      			// en 64 bits on peut faire des saut relatifs de 64 bits, donc toutes les valeurs sont OK
+      			si  contexte.compilateur.b64Bits() alors
+      			 	renvoyer Vrai
+      			sinon
+      				// en 32 bit doit être une addresse 32 bits
+      				renvoyer (valeurParam.valeurImmediate <=0xFFFFFFFF)
+      			fin
+      		FIN
+      		// autres cas
+      		renvoyer faux
+      		
+      		
+      	cas MEMORY_16BITS
+      		// non supporté 
+      		renvoyer faux
+      	
+      	CAS MEMORY_LEA
+      		renvoyer valeurParam.bEstModeIndirection() _ou_ valeurParam.bEstModeIndirectionLabel()
+      		
+      		
+      	autre cas
+      		// non supporté 
+      		dbgAssertion(Faux,"Type d'opérande non géré : " + nomType)
+      		RENVOYER Faux
+      fin
+      
+     type : 458752
+   -
+     name : Encode
+     internal_properties : BgAAAAYAAADa7CpnGb6ODsiz7EayZI7zAui3AAmjsaJjAH7d0R3o9DqtwyZ4t7fRGb2/FjfOPKZTPEI5PT6R5USg0zRjkIiCEVHXUd4zOHffzo8DT8K+MOCQHyEqeXtLtne4Wap1tlCfI1vPFc5HL5wTFNz5F9s75YYrmIfQ3rTaoziJ6nNMMIbfVsBekfwWCJlleS0KsAj6Y5JL+w==
+     procedure_id : 2157233528784453484
+     type_code : 12
+     code : |1+
+      Procédure Encode( valeur est ValeurOpérande, nValRegDans_modRegRM entier, contexte est ContexteCompilation dynamique )
+      
+      
+      selon nomType
+      
+      	CAS	IMMEDIATE_8BITS
+      		RENVOYER _encodeImmediate8(valeur.valeurImmediate) 				
+      	CAS	IMMEDIATE_16BITS
+      		RENVOYER _encodeImmediate16(valeur.valeurImmediate) 			
+      	CAS	IMMEDIATE_16ou32BITS
+      		RENVOYER _encodeImmediate32(valeur.valeurImmediate) 	
+      	CAS	IMMEDIATE_16ou32ou64BITS // cas de MOV RAX, 0xFFFFFFFFFFFFFFFFFFF
+      		SI contexte.compilateur.b64Bits() _ET_ contexte.tailleOpérande=64 ALORS
+      			// cas valeur immédiate comme 0xFFFFFFFFFFFFFFFF
+      			RENVOYER _encodeImmediate64(valeur.valeurImmediate)
+      		sinon
+      			RENVOYER _encodeImmediate32(valeur.valeurImmediate) 	
+      		fin
+      
+      	CAS	REGISTRE_8BITS, REGISTRE_16Ou2BITS, REGISTRE_32BITS, REGISTRE_CONTROL
+      		RENVOYER valeur.Encode_MOD_REG_RM_RegistreDest( nValRegDans_modRegRM) 			
+      		
+      	cas MOD_REG_RM_16_OU_32BITS
+      		// si c'est un registre, 
+      		SI valeur.bEstModeRegistre() ALORS
+      			RENVOYER valeur.EncodeAdressage( nValRegDans_modRegRM )
+      		FIN		
+      		RENVOYER  valeur.Encode_MOD_REG_RM_IndirectionRegistre( nValRegDans_modRegRM )
+      	
+      	cas MOD_REG_RM_32BITS, MOD_REG_RM_64BITS
+      		// cas géré par l'appelant
+      		dbgAssertion(Faux)
+      		RENVOYER ""
+      		
+      	cas INDIRECT_REL_16ou32BIT
+      		RENVOYER _encodeImmediate32(valeur.valeurImmediate) 	
+      		
+      	CAS RELATIF_8BIT:
+      		// si on encode a vide avant patch
+      		SI valeur:modeAdres = ValeurOpérande::MA_Vide ALORS
+      			RENVOYER _encodeImmediate8("0") 
+      		FIN
+      		// encode un offset par rapport a EIP après l'exécution de l'instruction
+      		offset est un entier = val(valeur.valeurImmediate) - contexte.nOffsetDest - 1 - contexte.offsetDansInstruction  - contexte.pAddrDebutCode
+      		RENVOYER _encodeImmediate8(""+offset) 		
+      		
+      	cas RELATIF_16ou32:
+      		// si on encode a vide avant patch
+      		si valeur:modeAdres = ValeurOpérande::MA_Vide ALORS
+      			RENVOYER _encodeImmediate32("0") 
+      		FIN
+      		
+      		// encode un offset par rapport a EIP après l'exécution de l'instruction
+      		offset est un entier  = val(valeur.valeurImmediate) - contexte.nOffsetDest - 4 - contexte.offsetDansInstruction  - contexte.pAddrDebutCode
+      		RENVOYER _encodeImmediate32(""+offset) 
+      	
+      	cas MOD_REGISTRE_OU_INDIRCET_8BITS
+      		// inc [ebx] est OK par ex. veut dire incréementer l'octet en [Ebx]
+      		SI valeur.bEstModeIndirection() ALORS
+      			RENVOYER valeur.Encode_MOD_REG_RM_IndirectionRegistre( nValRegDans_modRegRM )
+      		FIN
+      		// si c'est un registre, 
+      		SI valeur.bEstModeRegistreDeType( REGISTRE_8BITS) ALORS
+      			RENVOYER valeur.EncodeAdressage( nValRegDans_modRegRM )
+      		FIN
+      		dbgAssertion(faux)
+      	
+      	cas MEMORY_LEA
+      		SI valeur:modeAdres = ValeurOperande::MA_Vide ALORS
+      			// offset sur 32 bits a patcher			
+      			RENVOYER _encodeImmediate32("0") 
+      		FIN		
+      		si valeur.bEstModeIndirectionLabel() ALORS
+      			// encode un offset par rapport a EIP après l'exécution de l'instruction
+      			offset est un entier sur 4 = val(valeur.valeurImmediate) - contexte.nOffsetDest - 4 - contexte.offsetDansInstruction - contexte.pAddrDebutCode
+      			// en mode 32 bits avec LEA xxx,[LABEL], l'adresse est absolue
+      			SI pas contexte.compilateur.b64Bits() ALORS
+      				offset =  val(valeur.valeurImmediate)
+      			FIN			
+      			RENVOYER _encodeImmediate32(""+offset) 			
+      			
+      			//RENVOYER _encodeImmediate32(0)
+      		FIN
+      		// le cas adresse dans reg aurait du être traité avant...
+      		dbgAssertion(Faux)
+      		
+      	AUTRE CAS
+      		// si c'est un registre, rien a encoder
+      		// ex : PUSH ES
+      		si bEstRegistre(nomType) ALORS
+      			renvoyer ""
+      		FIN
+      		
+      		dbgAssertion(faux)
+      		RENVOYER ""
+      FIN
+      
+      dbgAssertion(Faux)
+      RENVOYER ""
+     type : 458752
+   -
+     name : Encode_RM_REG
+     procedure_id : 2157233528784519020
+     type_code : 12
+     code : |1+
+      Procédure globale Encode_RM_REG( dest est ValeurOpérande, source est ValeurOpérande) : buffer
+      
+      // si source est une indirection.
+      // ex : [EBP + 12]
+      SI source.bEstModeIndirection() ALORS
+      	RENVOYER source.Encode_MOD_REG_RM_IndirectionEtDéplacement(dest)
+      FIN
+      // si source est une indirection vers une adresse (lea).
+      // ex : [EBP + 12]
+      SI  source.bEstModeIndirectionLabel() ALORS
+      	// MOD REG     RM
+      	//  00 <dest> 101
+      	// Register indirect addressing mode or SIB with no displacement (when R/M = 100) or Displacement only addressing mode (when R/M = 101).
+      	nMOD_RG_RM est entier= (nIndiceRegistre(dest.registre) & 0x7) * 0x8 + 0x5
+      	RENVOYER  caract( nMOD_RG_RM )
+      FIN
+      
+      // si sDest et source sont un registre direct
+      dbgAssertion( dest.bEstModeRegistre())
+      dbgAssertion( source.bEstModeRegistre())
+      renvoyer dest.Encode_MOD_REG_RM_RegistreDestSource(source.registre)
+     type : 458752
+   -
+     name : _encodeImmediate16
+     internal_properties : BgAAAAYAAABxSWYNsh4VS/CVqS6PG0wUPml9fQx7d+YFKOSntsNHnFLPjyFlfKOcxLa7r7kDOg3nzkq2FUIxN+qayTkjIKVMGEh+xV+QEWznlIRs9JwjdIHir7LD+6qlUN9tlJHjQRi6zUuSUmYg95j5v7O8qzy5XqiXQXYu8fIIG4WGz+F5oPN71LWRb6Eg8gVcrBwIlPO153sK
+     procedure_id : 2157233528784650092
+     type_code : 12
+     code : |1-
+      Procédure _encodeImmediate16(valeur entier sur 8 sans signe  )
+      // conversion texte => entier sur 16 bits
+      imm16 est entier sur 2 sans signe = valeur
+      // renvoie en little endian
+       renvoyer  Caract(PoidsFaible(imm16,2)) ...
+       		 + Caract(PoidsFort  (imm16,2))
+       		 
+     type : 458752
+   -
+     name : _encodeImmediate8
+     procedure_id : 2157233528784715628
+     type_code : 12
+     code : |1-
+      PROCÉDURE _encodeImmediate8(valeur entier sur 8 sans signe ) 		 
+      
+      imm8 est entier sur 1 sans signe = valeur
+      RENVOYER  Caract(imm8)
+       		 
+     type : 458752
+   -
+     name : _encodeImmediate32
+     internal_properties : BgAAAAYAAABxSWYNsh4VS/CVqS6PG0wUPml9fQx7d+YFKOSntsNHnFLPjyFlfKOcxLa7r7kDOg3nzkq2FUIxN+qayTkjIKVMGEh+xV+QEWznlIRs9JwjdIHir7LD+6qlUN9tlJHjQRi6zUuSUmYg95j5v7O8qzy5XqiXQXYu8fIIG4WGz+F5oPN71LWRb6Eg8gVcrBwIlPO153sK
+     procedure_id : 2157233528784781164
+     type_code : 12
+     code : |1+
+      PROCÉDURE _encodeImmediate32(valeur entier sur 8 sans signe )
+      // conversion texte => entier sur 16 bits
+      imm32 est entier sur 4 sans signe = valeur
+      // renvoie le buffer en little endian
+      RENVOYER AssembleurX86::uint32VersbufferLowEndian(imm32)	 
+     type : 458752
+   -
+     name : _encodeImmediate64
+     internal_properties : BgAAAAYAAAD1xeqRbgxtZ7xpRRK//0Q8aq0VITgPV0JhJBj7Bj8n5C6TR7WZWEPoqIpniwnnUl0bmroCgT5x8y6mpa27jD08vFwu+cPkgZBzCIpirtL5TnPs5bCNMfBj8l1L4tOp34oMn5nYJMR+TcKvjZmmCWJj6NJN1whcL7A6GSskGW/XIs1V8lvz3Q9WJPOyYjYuWB9Ba/eO
+     procedure_id : 2157233528784846700
+     type_code : 12
+     code : |1-
+      PROCÉDURE _encodeImmediate64(valeur entier sur 8 sans signe )
+      
+      // renvoie le buffer en little endian
+      RENVOYER AssembleurX86::uint64VersbufferLowEndian(valeur) 		
+     type : 458752
+   -
+     name : bModeEncodageRM
+     procedure_id : 2157233528784912236
+     type_code : 12
+     code : |1+
+      // Résumé : <indiquez ici ce que fait la procédure>
+      // Syntaxe :
+      //[ <Résultat> = ] bModeEncodageRM ()
+      //
+      // Paramètres :
+      //	Aucun
+      // Valeur de retour :
+      // 	booléen : // 	Aucune
+      //
+      // Exemple :
+      // Indiquez ici un exemple d'utilisation.
+      //
+      PROCEDURE bModeEncodageRM()
+      
+       renvoyer :nomType = MOD_REG_RM_16_OU_32BITS		 _ou_ ...
+       		  :nomType = MOD_REG_RM_32BITS				 _ou_ ...
+       		  :nomType = MOD_REG_RM_64BITS				 _ou_ ...
+      		  :nomType = MOD_REGISTRE_OU_INDIRCET_8BITS
+      
+     type : 458752
+   -
+     name : nGetTailleEnBit
+     procedure_id : 2157233528784977772
+     type_code : 12
+     code : |1-
+      procédure nGetTailleEnBit()
+      
+      
+      selon :nomType
+      	cas REGISTRE_8BITS, IMMEDIATE_8BITS
+      		 renvoyer 8
+      	
+      	AUTRE CAS
+      		renvoyer 32	
+      FIN
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : BgAAAAYAAAA6ih3UbgNXHwTtiPSFUEj+2fi/m7v4QV2rqidAupM=
+  original_name : Classe1
+resources :
+ string_res :
+  identifier : 0x1b6569110048cc9a
+  internal_properties : BgAAAAYAAAAnMYFQ1bL/vz9ehh7L22SNNSlIzGTOI8h5F/WtgDNP
+  strings :
+   -
+     text :
+      fr-FR : "Erreur de syntaxe : registre attendue au lieu de <%1>"
+     index : 0
+   -
+     text :
+      fr-FR : "Erreur de syntaxe : valeur immédiate attendu au lieu de <%1>"
+     index : 1
+custom_note :
+ internal_properties : BgAAAAYAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ

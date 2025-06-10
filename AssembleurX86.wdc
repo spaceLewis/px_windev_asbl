@@ -1,0 +1,716 @@
+#To edit and compare internal_properties, use WINDEV integrated tools.
+#Internal properties refer to the properties of controls in windows, reports, etc.
+info :
+ name : AssembleurX86
+ major_version : 26
+ minor_version : 0
+ type : 4
+ description : ""
+ subtype : 0
+class :
+ identifier : 0x1b654a3600334512
+ internal_properties : BgAAAAYAAAB2/vstTMCJbS/hlxjFxirSqKvCUuv8YxgpWyl7S3iA
+ code_elements :
+  internal_properties : BgAAAAYAAAByT7vhR5fHDre2H98hwa4VN5PsxgdfAheMOmFSKgg5OXNNFUmB9iT/1JPBz7joUVyi5Jgi3D13dD5KwvkNwrqOn3vkp2L9lAZWT/jreNlmLvgmZwb+yDqETHz8i3rDHLnClDae9IQeP2hxYEpPv/oJQy9Gx3yzxhDUX+c=
+  type_code : 10
+  p_codes :
+   -
+     code : |1-
+      AssembleurX86 est une Classe
+      	cAlloMemExecutable est AllocateurDeMemExecutable 
+      	eMode 			   est EModeASM  // pour Test auto.
+      FIN
+      
+      EModeASM est une énumération
+      	SelonPlateforme   // 32 ou 64 bits selon la plateforme courante
+      	force32Bits 	  // force a générer du code 32 bits
+      	force64Bits       // force a générer du code 64 bits
+      fin
+      EDirective est une énumération
+       	débutDonnées    // .data : on entre dans une zone de donnée
+       	débutCode       // .code : on entre dans une zone de code
+       	débutProcédure  // PROCC xxxxx :  début de procédure
+       	finProcédure    //  xxxxx PROC  :  fin de procédure
+       	procédureExterne  //  xxxxx PROTO C  :  procédure externe
+       	macro		    //  xxx equ yyy  :  "macro"
+       	ifdef		    //  IFDEF linux  : compilation conditionnelle
+       	elseif		    //  ELSE ; linux  : compilation conditionnelle
+       	endif			//  ENDIF
+      fin
+     type : 131072
+  procedures :
+   -
+     name : Constructeur
+     procedure_id : 1974065607463945490
+     type_code : 27
+     code : |1+
+      PROCEDURE Constructeur()
+     type : 589824
+   -
+     name : Destructeur
+     procedure_id : 1974065607464011026
+     type_code : 28
+     code : |1+
+      PROCEDURE Destructeur()
+      
+      
+     type : 655360
+   -
+     name : _pcompileX86
+     procedure_id : 1977580351004294187
+     type_code : 12
+     code : |1-
+      // compile le code assembleur dans <codex86>
+      // renvoie (un pointeur sur le code machine a exécuter , "")
+      // ou      (null,<message d'erreur>)
+      // <sNomProcedurePrincipale> : nom du point d'entrée. si non précisé, renvoie le début du code assemblé
+      // <tabSymboleExterne>: tableau associatif symboles externe. clé = nom du symbole. valeur = adresse
+      PROCÉDURE _pcompileX86( codeAssembleur est chaine, sNomProcedurePrincipale est chaine, tabSymboleExterne tableau associatif d'entiers système   ) : (entier système, chaine)
+      contexte est ContexteCompilation
+      
+      // test cas code vide
+      si codeAssembleur="" ALORS
+      	renvoyer (0,"code vide")
+      FIN
+      
+      // récup d'une zone de code exécutable
+      pAddrCode  est entier système = :cAlloMemExecutable.pNouvelleZoneExecutable( )
+      si pAddrCode= 0 ALORS
+      	RENVOYER (Null, "Erreur d'allocation")
+      FIN
+      // init contexte pour les call/jmp relatifs
+      contexte.pAddrDebutCode = pAddrCode
+      // déclaration des symboles externe
+      pour tout adddr,nomSymbole de tabSymboleExterne
+      	contexte.déclareSymboleExterne( nomSymbole, adddr)
+      FIN
+      
+      // compilation du code source ASM vers binaire exécutable
+      bufCodeAsm est un buffer =  _sCompile( codeAssembleur, contexte )
+      SI bufCodeAsm="" ALORS
+      	dbgAssertion(ErreurInfo()<>"")
+      	RENVOYER (null, ErreurInfo())
+      FIN
+      
+      // réserve la zone de code exécutable. 
+      si pas :cAlloMemExecutable.bReserveZoneExecutable( pAddrCode, taille(bufCodeAsm) ) ALORS
+      	RENVOYER (Null, "Erreur d'allocation")
+      FIN
+      // copier le code dedans
+      Transfert(pAddrCode,&bufCodeAsm, Taille(bufCodeAsm) )
+      
+      // si on veut l'adresse d'un procédure 
+      si sNomProcedurePrincipale<>"" ALORS
+      	// recherche dans la table de symboles
+      	SI PAS contexte.tabSymboleRencontré[sNomProcedurePrincipale]..Existe ALORS
+      		ErreurDéclenche(ERR_COMPILATION_ASM, ChaîneConstruit("la procédure <%1> est inconnue",sNomProcedurePrincipale))
+      		RENVOYER (null,""+ErreurInfo)
+      	FIN
+      	soit offsetProc = contexte.tabSymboleRencontré[sNomProcedurePrincipale].offset
+      	RENVOYER (pAddrCode + offsetProc,"")
+      FIN
+      
+      
+      renvoyer (pAddrCode,"")
+     type : 458752
+   -
+     name : compileX86
+     procedure_id : 1974065766377903061
+     type_code : 12
+     code : |1+
+      // compile le code assembleur dans <codex86>
+      // renvoie la procédure qui permet de l'exécuter
+      // <tabSymboleExterne> est un tableau associatif>
+      procédure compileX86( codeAssembleur est chaine,  sNomProcedurePrincipale est chaine,  tabSymboleExterne tableau associatif d'entiers système ) : procédure
+      
+      // compilation du code source ASM vers binaire exécutable
+      pAddrCode  est entier système
+      sErreurCompilation est une chaîne
+      (pAddrCode,sErreurCompilation)   =  _pcompileX86( codeAssembleur, sNomProcedurePrincipale, tabSymboleExterne )
+      si pAddrCode=0 ALORS
+      	dbgAssertion( sErreurCompilation<>"" )
+      	RENVOYER _enErreur
+      FIN
+      
+      
+      // procédure renvoyée si compilation OK
+      	Procédure interne _executeCodeAsm(*) 
+      	   // pAddrCode viens de la closure
+      		renvoyer api(pAddrCode, MesParamètres)
+      	fin
+      // procédure pour le cas d'une erreur de compilation
+      	PROCÉDURE INTERNE _enErreur(*)
+      		dbgAssertion(faux,"Erreur de compilation"+rc+sErreurCompilation)
+      	FIN
+      
+      // succès
+      résultat est une procédure
+      résultat= _executeCodeAsm
+      renvoyer résultat
+     type : 458752
+   -
+     name : _sCompile
+     internal_properties : BgAAAAYAAAAr9yUhSuGuOQwhi8LjTzzUZqkl+4IJ4RCZROI7Ej//FDo3c0t37rVyZF4Fc2Vz0u3XVg6Yzwz3cWIaC1XvYGWUfKTC57kytw7ziEuj9dtgN8SV2qW8cjEqxVS0Q7qKbhu9+Kp5ZznrOPmS4k4ZjsHc4QOmABNJJOddBJCRjCQaN2rSoxzeKmQlNwo/hyGO58piGSXQ
+     procedure_id : 1974066921724178358
+     type_code : 12
+     code : |1+
+      // compilation du code assembler vers un buffer exécutable
+      procédure _sCompile( codeAssembleur est chaine, contexte est ContexteCompilation ) : buffer
+      
+      //contexte est ContexteCompilation
+      contexte.compilateur <- objet
+      
+      // 1 Passe : compilation ligne a ligne
+      bufCodeAsm est un buffer
+      sCodeAsm1Ligne est chaine
+      POUR TOUTE CHAÎNE sCodeAsm1Ligne DE codeAssembleur séparée par RC
+      	// MAJ contexte
+      	contexte.nLigneSource++
+      	contexte.nOffsetDest   = taille(bufCodeAsm) // pour calculer l'adresse des labels
+      	// compilation de la ligne n°<nLigne>
+      	codeAsmLigne est un buffer
+      	codeAsmLigne = _CompileUneLigne( sCodeAsm1Ligne, contexte )
+      	SI ErreurDétectée ALORS 
+      		ErreurDéclenche(ERR_COMPILATION_ASM, ChaîneConstruit(<§$0003§>, contexte.nLigneSource, sCodeAsm1Ligne, ErreurInfo()))
+      		RENVOYER ""
+      	FIN
+      	// ajout au code complet
+      	bufCodeAsm += codeAsmLigne
+      
+      FIN
+      
+      // passe 2 : patcher les symboles
+      sLabel est chaine
+      pour tout utilisationLabel  de contexte.tabUtlisationSymbole
+      	sLabel  = utilisationLabel.label
+      	nOffsetInstr est un entier 	 = utilisationLabel.offsetDestAddr  // commence a 0
+      	nOffsetPatch  est un entier  = utilisationLabel.offsetPatch // commence a 0
+      	nTaille est un entier 	 = utilisationLabel.taille
+      	typeOp  est TypeOpérande = utilisationLabel.typeOperande
+      	// récup valeur effective
+      	si pas contexte.tabSymboleRencontré[sLabel]..Existe ALORS
+      		nLigne est un entier = utilisationLabel.ligne
+      		ErreurDéclenche(ERR_COMPILATION_ASM, chaineconstruit(<§$0004§>, nLigne, sLabel))
+      		RENVOYER ""
+      	FIN
+      	// adresse effective
+      	valeurLabel est un entier sur 8 octets = contexte.pAddrDebutCode + contexte.tabSymboleRencontré[sLabel].offset
+      	// patch
+      	contexte.nOffsetDest		   = nOffsetInstr
+      	contexte.offsetDansInstruction = 0
+      	valeurAPatcher est ValeurOpérande
+      	valeurAPatcher.valeurImmediate = valeurLabel
+      	valeurAPatcher.modeAdres			   = ValeurOpérande::MA_Label
+      	si typeOp.nomType = MEMORY_LEA ALORS
+      		valeurAPatcher.modeAdres		   = ValeurOperande::MA_IndirectionLabel
+      	FIN
+      	
+      	bufSource est un buffer = typeOp.Encode(valeurAPatcher,0, contexte)
+      	dbgAssertion(taille(bufSource) = nTaille )
+      	bufCodeAsm[ nOffsetPatch+1 a nOffsetPatch + nTaille ] = bufSource // +1 car les chaines WL  commencent à 1
+      FIN
+      
+      
+      renvoyer bufCodeAsm
+     type : 458752
+   -
+     name : _bEstDirectiveDeCompilation
+     procedure_id : 2170363432707260301
+     type_code : 12
+     code : |1+
+      // indique si la ligne est une directive de compilation
+      // ie pas du code assembleur
+      // ex : .CODE
+      procédure _bEstDirectiveDeCompilation( sCodeAsm1Ligne est chaine, eDirective_OUT est EDirective, sParamDirective_OUT chaine, sParamDirective2_OUT chaine ) : booléen 
+      
+      // ignorer .CODE, .TEXT, .MODEL, ...
+      si sCodeAsm1Ligne[[1]]="." alors
+      	si (sCodeAsm1Ligne ~= ".CODE") ALORS
+      		eDirective_OUT = débutCode
+      		renvoyer vrai
+      	fin
+      	si (sCodeAsm1Ligne ~= ".TEXT") alors
+      		renvoyer vrai
+      	FIN
+      	si (sCodeAsm1Ligne ~= ".DATA") alors
+      		eDirective_OUT = débutDonnées
+      		renvoyer vrai
+      	fin
+      	// cas 32 bits
+      	SI (gauche(sCodeAsm1Ligne,7) ~= ".MODEL ")  alors
+      		RENVOYER Vrai
+      	fin
+      
+      fin
+      
+      SI (sCodeAsm1Ligne ~= "END") RENVOYER Vrai
+      
+      //ignorer les directive PROC / ENCODE
+      sDernierToken est chaine = minuscule( ExtraitChaîne(sCodeAsm1Ligne,1," ",DepuisFin) )
+      si sDernierToken="proc" ALORS
+      	eDirective_OUT = débutProcédure
+      	// extrait le nom de la procédure
+      	sParamDirective_OUT =  ExtraitChaîne( SansEspace(sCodeAsm1Ligne),1," ")
+      	dbgAssertion(sParamDirective_OUT<>"")
+       	RENVOYER Vrai
+      fin
+      SI sDernierToken="private" ALORS // Cas "xxxx proc private"
+      	RENVOYER Vrai
+      FIN
+      
+      si sDernierToken="endp" ALORS
+      	eDirective_OUT = finProcédure
+      	RENVOYER Vrai
+      fin
+      
+      // support de "multiplication_256x256_512 PROTO C" (= déclaration d'une fonction externe)
+      si droite(sCodeAsm1Ligne,8) ~= " PROTO C" ALORS
+      	eDirective_OUT  = procédureExterne
+      	sParamDirective_OUT = gauche(sCodeAsm1Ligne, taille(sCodeAsm1Ligne) - 8) // extrait le du symbole
+      	RENVOYER Vrai
+      FIN
+      
+      // support des "macro"
+      si position(sCodeAsm1Ligne," equ ")>0 ALORS
+      	eDirective_OUT		 = macro
+      	sParamDirective_OUT	 = Extraitchaine(sCodeAsm1Ligne,1, " equ ")
+      	sParamDirective2_OUT = ExtraitChaîne(sCodeAsm1Ligne,2, " equ ")
+      	RENVOYER Vrai
+      FIN
+      // compilation conditionnelle
+      SI (Gauche(sCodeAsm1Ligne,6) ~= "IFDEF ")  ALORS
+      	eDirective_OUT  = ifdef
+      	sParamDirective_OUT	 = SansEspace( Milieu(sCodeAsm1Ligne, 7))
+      	RENVOYER Vrai
+      FIN
+      SI (Gauche(sCodeAsm1Ligne,5) ~= "ENDIF")  ALORS
+      	eDirective_OUT			= endif
+      	RENVOYER Vrai
+      FIN
+      SI (Gauche(sCodeAsm1Ligne,4) ~= "ELSE")  ALORS
+      	eDirective_OUT			= elseif
+      	RENVOYER Vrai
+      FIN
+      
+      
+      // autre chose, du code asm
+      renvoyer faux
+     type : 458752
+   -
+     name : _CompileUneLigne
+     internal_properties : BgAAAAYAAAD6zArH6f79WBbfdMQ09B6TtGi1HA+VUQTRpJ4L2yVgRJCxLbam5VNvt3krLBGeDNZ1DHx5HziBg3Ks+wZJHJyW6/lVtQC5bE012oAURhWlS61fNgZVPKgEf3D1YrngzVu4urIoHOXgTPkgNcWIolaCqs2ytUrrc8nX0N0qQQ4rG4PSUSm1ePUfAZJuDphpgHhaw3Jr2w==
+     procedure_id : 1974067480069991068
+     type_code : 12
+     code : |1+
+      // compilation d'une ligne d'assembleur vers son code x86 exécutable
+      // ex: "RET 4" => "0xC2 0X04 0x00"
+      procédure privée _CompileUneLigne( sCodeAsm1Ligne est chaine, contexte est ContexteCompilation dynamique ) : buffer
+      
+      // supprimer les commentaires de la lignes
+      Parseur.SupprimeCommentaire(sCodeAsm1Ligne)
+      // ignorer les lignes vides 
+      si parseur.bEstLigneVide(sCodeAsm1Ligne)  alors renvoyer ""
+      
+      // gestion des directives de compilation pour compatibilité avec un fichier  "masm"
+      // ex : ".CODE" ou "MaProcédure PROC"
+      directive est EDirective
+      sParamDirective  est chaine
+      sParamDirective2 est chaine
+      si _bEstDirectiveDeCompilation( sCodeAsm1Ligne, directive, sParamDirective, sParamDirective2  ) ALORS
+      	// ignorer les directives dans un IFDEF 
+      	si pas contexte.bCompilActive _et_  directive<>endif  _ET_  directive<>elseif ALORS
+      		renvoyer ""
+      	FIN
+      	
+      	selon directive
+      		CAS débutDonnées
+      			contexte.bDansData = vrai
+      		CAS débutCode
+      			contexte.bDansData = faux
+      		CAS débutProcédure
+      			// ajout du symbole
+      			dbgAssertion(sParamDirective<>"")
+      			contexte.onDéclarationLabel(sParamDirective)
+      		cas procédureExterne
+      			// le symbole doit avoir déjà été déclaré
+      			dbgAssertion(sParamDirective<>"")
+      			si pas contexte.tabSymboleRencontré[sParamDirective]..Existe alors
+      				ErreurDéclenche(ERR_COMPILATION_ASM, ChaîneConstruit("symbole externe <%1> a déclarer avant le début de la compilation", sParamDirective) )
+      				RENVOYER ""
+      			FIN
+      		cas macro
+      			contexte.déclareMacro( sParamDirective, sParamDirective2 )
+      		cas ifdef
+      			si pas contexte.tabSymboleRencontré[sParamDirective]..existe alors
+      				// désactiver la compilation
+      				contexte.bCompilActive = faux
+      			fin
+      		CAS elseif
+      			// inverse l'activation de compilation
+      			contexte.bCompilActive = pas contexte.bCompilActive
+      		cas endif
+      			contexte.bCompilActive = vrai 
+      	FIN
+      	// pas de code généré pour cette ligne
+      	rENVOYER ""
+      FIN
+      // si on ne doit pas compiler pour l'intant (compil conditionnelle)
+      si pas contexte.bCompilActive ALORS
+      	renvoyer ""
+      FIN
+      // si on est dans la zone de données (.data)
+      si contexte.bDansData ALORS
+      	renvoyer _complileUnLigneData( sCodeAsm1Ligne, contexte )
+      FIN
+      
+      // patcher les macros
+      POUR TOUT valeur,nomMacro DE  contexte.tabMacro
+      	sCodeAsm1Ligne = Remplace(sCodeAsm1Ligne,nomMacro,valeur)
+      FIN
+      	
+      
+      
+      
+      // découper la ligne en ses élément lexicaux : 
+      // label: OPCODE P1,P2,P3 ;Commentaire
+      sLabel  est une chaîne
+      sopcode est une chaîne
+      TabParamStr est un tableau de chaîne // de 0 a 4 paramètres
+      (sLabel, sopcode, TabParamStr) = Parseur.AnalyseSyntaxiqueLigne( sCodeAsm1Ligne )
+      si ErreurDétectée alors RENVOYER ""
+      
+      // analyse des paramètres => conversion en mode d'adressage
+      TabParametre est un tableau de ValeurOpérande
+      _AnalyseParametre( TabParamStr, contexte, TabParametre )
+      SI ErreurDétectée ALORS RENVOYER ""
+      // calcul taille des opérandes (pour ajout éventuel du forçage en mode 16 bits)
+      contexte.tailleOpérande  =  _nCalculeTailleParametre( TabParametre )
+      SI ErreurDétectée ALORS RENVOYER "" // ex : mov eax,el
+      
+      
+      // si label
+      si sLabel<>"" ALORS
+      	contexte.onDéclarationLabel(sLabel)
+      FIN
+      // si pas de code
+      si sopcode="" ALORS
+      	renvoyer "" // rien a compiler
+      FIN
+      
+      // retrouver l’instruction et sa syntaxe selon le nom et les paramètres
+       syntaxe est SyntaxeInstructionX86 dynamique = _rechercheSyntaxeInstruction( sopcode, TabParametre, contexte)
+      // si aucune syntaxe ne correspond
+      si syntaxe = null ALORS
+      	ErreurDéclenche(ERR_COMPILATION_ASM, ChaîneConstruit(<§$0000§>, sCodeAsm1Ligne) )
+      	renvoyer ""
+      FIN
+      
+      // encoder l'instruction et ses paramètres
+      renvoyer syntaxe.Encode( TabParametre, contexte  )
+     type : 458752
+   -
+     name : _AnalyseParametre
+     procedure_id : 1976292414931966194
+     type_code : 12
+     code : |1+
+      procédure _AnalyseParametre( tabExpression est un tableau de chaine, contexte est ContexteCompilation, tabParamOUT est tableau de ValeurOpérande)
+      
+      // pour chaque expression
+      pour TOUT sExpression DE tabExpression
+      	// conversion en objet de type <ModeAdressage>
+      	valeurOp est ValeurOpérande
+      	si pas Parseur.bAnalyseChaineVersModeAdressage( sExpression, valeurOp, contexte ) ALORS
+      		ErreurDéclenche( ERR_COMPILATION_ASM, ChaîneConstruit("Erreur de syntaxe : <%1> n'est pas un paramètre valide.", sExpression ))
+      		retour
+      	FIN
+      	// succès, ajout au tableau résultat	
+      	tabParamOUT.Ajoute(valeurOp)
+      FIN
+     type : 458752
+   -
+     name : _bTailleOperandeValide
+     procedure_id : 2019348628790926199
+     type_code : 12
+     code : |1+
+      procédure _bTailleOperandeValide( n entier )
+      
+      
+      // registre 64 bits interdits en 32 bits
+      si n=64 _et_ pas b64Bits() alors
+      	renvoyer faux
+      FIN
+      
+      // OK
+      renvoyer vrai
+     type : 458752
+   -
+     name : _nCalculeTailleParametre
+     procedure_id : 1976683733685425932
+     type_code : 12
+     code : |1+
+      procédure _nCalculeTailleParametre( tabParamT est tableau de ValeurOpérande) : entier
+      
+      si tabParamT.Occurrence() = 0 ALORS
+      	renvoyer faux
+      FIN
+      // °0 : indéterminé
+      nTailleOK est un entier = 0
+      
+      pour i = 1 _a_ tabParamT.Occurrence()
+      	nTaille est un entier = tabParamT[i].nGetTailleEnBit()
+      	// si taille invalide
+      	si pas _bTailleOperandeValide(nTaille) ALORS
+      		ErreurDéclenche(ERR_COMPILATION_ASM, ChaîneConstruit("Taille de l'opérande %1 invalide. ", i))
+      		RENVOYER -1
+      	FIN
+      	// si pas encore initialisé
+      	si nTailleOK=0 ALORS
+      		nTailleOK = nTaille
+      	FIN
+      	// si taille différente
+      	si nTaille<>0 _et_ nTailleOK<>0 _et_ nTailleOK<>nTaille ALORS
+      		// erreur
+      		ErreurDéclenche(ERR_COMPILATION_ASM,<§$0005§>)
+      		renvoyer -1
+      	FIN
+      fin
+      renvoyer  nTailleOK
+      
+     type : 458752
+   -
+     name : _rechercheSyntaxeInstruction
+     internal_properties : BgAAAAYAAADC5BKo6j5leHZf7EScDLbDBOh9nEdNkcxZzL7TmwWw3GhJzV4mhWvPN3kT3NmWZHYl3NS591Ax+1pUq+4JPAwewwEFHSCJ5E0lyowISvmBd6nb0vJZEATgAxQhFl1EaVe0xk6UgFlcyK2UoUl8tkKORtn+sW6PLxV7RBnuFfIH59++rbVZnBErFZZqEux9zBT3u3pT4w==
+     procedure_id : 1974112237926149665
+     type_code : 12
+     code : |1+
+      // recherche la syntaxe qui correspond a une instruction et ses paramètres
+      Procédure _rechercheSyntaxeInstruction( sopcode chaine, tabValeurParam tableau de ValeurOpérande, contexte est ContexteCompilation dynamique ) : SyntaxeInstructionX86
+      
+      
+      resultat est SyntaxeInstructionX86 dynamique
+      
+      // recherche la syntaxe selon l'opération et ses paramètres
+      
+      // OPTIM essai avec la signature pour "MPV reg,reg"
+      signatureParam est chaine = sopcode
+      pour tout valOp de tabValeurParam
+      	signatureParam += "_" + valOp.getSignature()
+      FIN
+      si signatureParam="mov_reg_reg"
+      	syntaxeParSignature est SyntaxeInstructionX86 dynamique <-  rechercheSyntaxeParSignature( "mov_r16/32_r/m16/32" )
+      	dbgAssertion( syntaxeParSignature<>null )
+      	dbgAssertion( syntaxeParSignature.bEstcompatibleAvecTabValeur( tabValeurParam, contexte ) )
+      	renvoyer syntaxeParSignature
+      //	sinon
+      //		dbgAssertion(faux)
+      //	fin
+      FIN
+      
+      
+      // 2eme chaine
+      tabSyntaxe est un tableau de SyntaxeInstructionX86 <- rechecheTypeInstruction(sopcode)
+      POUR TOUT syntaxeI DE tabSyntaxe
+      	// test si la syntaxe est OK avec le contexte (ex :32 bits/64 bits)
+      	si pas syntaxeI.bEstcompatibleAvecContexte( contexte ) ALORS
+      		continuer // on ne peut pas l'utiiser
+      	FIN
+      	
+      	// si la syntaxe est compatible avec les paramètres
+      	SI syntaxeI.bEstcompatibleAvecTabValeur( tabValeurParam, contexte ) ALORS
+      		// si on en  a déjà trouvé une
+      		si resultat<>null ALORS
+      			// on ne la prend que si elle est meilleurs
+      			si syntaxeI.bEstMeilleureQue( resultat ) alors
+      				// on a trouvé une meilleure syntaxe
+      				resultat = syntaxeI
+      			FIN
+      			
+      		sinon
+      			// on a trouvé la 1ere syntaxe compatible			
+      			resultat = syntaxeI
+      		fin
+      	FIN
+      	
+      FIN
+      
+      // aucune syntaxe OK
+      si resultat = null
+       	renvoyer null
+       fin
+       // OK 
+       renvoyer resultat
+       
+       
+      
+     type : 458752
+   -
+     name : uint16VersbufferLowEndian
+     procedure_id : 2179755216224272226
+     type_code : 12
+     code : |1-
+      // conversion d'un entier sur 16 octets sans signe en un buffer en petit endian 
+      PROCÉDURE GLOBALE uint16VersbufferLowEndian( LOCAL imm32 est entier sur 2 sans signe ) : Buffer
+      bufLowEdian est un Buffer = Répète(Caract(0),2)
+      Transfert(&bufLowEdian,&imm32,2)
+      RENVOYER bufLowEdian
+     type : 458752
+   -
+     name : uint32VersbufferLowEndian
+     internal_properties : BgAAAAYAAAA3i9EtQI1m/RiNJz4b06xMwnXlt1b1OVw9MIaPWvN37C6bKx8zioV+uIKR771/+u3j0s4UG7B3NU42t/l/lA2sINi6o72O76pXbLEBp8kuYe4HmHu2eC9gf6qaQeRwJE3PqpjXOW8Z7hNoQBTT/OfWe53MVo0n+v0XCp6P7oJI4TTsWSLgKFJTYfA15QPk7c5mJTnM
+     procedure_id : 1977867714397273161
+     type_code : 12
+     code : |1+
+      // conversion d'un entier sur 4 octets sans signe en un buffer en petit endian 
+      PROCEDURE globale uint32VersbufferLowEndian( local imm32 est entier sur 4 sans signe ) : buffer
+      bufLowEdian est un buffer = Répète(caract(0),4)
+      Transfert(&bufLowEdian,&imm32,4)
+      renvoyer bufLowEdian
+     type : 458752
+   -
+     name : uint64VersbufferLowEndian
+     internal_properties : BgAAAAYAAAA3i9EtQI1m/RiNJz4b06xMwnXlt1b1OVw9MIaPWvN37C6bKx8zioV+uIKR771/+u3j0s4UG7B3NU42t/l/lA2sINi6o72O76pXbLEBp8kuYe4HmHu2eC9gf6qaQeRwJE3PqpjXOW8Z7hNoQBTT/OfWe53MVo0n+v0XCp6P7oJI4TTsWSLgKFJTYfA15QPk7c5mJTnM
+     procedure_id : 2020871396566059043
+     type_code : 12
+     code : |1+
+      // conversion d'un entier sur 8 octets sans signe en un buffer en petit endian 
+      procédure GLOBALE uint64VersbufferLowEndian( LOCAL imm64 est entier sur 8 sans signe ) : buffer
+      bufLowEndian est un buffer = Répète(caract(0),8)
+      Transfert(&bufLowEndian,&imm64,8)
+      RENVOYER bufLowEndian
+     type : 458752
+   -
+     name : b64Bits
+     procedure_id : 2170743859441436027
+     type_code : 12
+     code : |1+
+      procédure b64Bits() : booléen
+      
+      selon eMode
+      	CAS SelonPlateforme
+      		renvoyer EnMode64bits()
+      	CAS force32Bits
+      		renvoyer  Faux
+      	CAS force64Bits
+      		renvoyer vrai
+      FIN
+     type : 458752
+   -
+     name : _complileUnLigneData
+     procedure_id : 2179750418744751146
+     type_code : 12
+     code : |1+
+      // compile 1 ligne de données.
+      // ex :
+      // _2P256_MoinsP_Ordre qword 402da1732fc9bebfh, 4551231950b75fc4h, 000000000000001h, 000000000000000h
+      procédure privée _complileUnLigneData( sLigneData chaine, contexte est ContexteCompilation ) : buffer
+      
+      sLigneData = remplace(sLigneData,TAB," ") // remplacer tab par espaces
+      // si que des espaces
+      SI SansEspace(sLigneData)="" ALORS
+      	RENVOYER ""
+      FIN
+      
+      // ex :
+      // T1          dword  12h , 11h , 03h , 20h ,04h  ,0
+      label    est chaine = ExtraitChaîne( sLigneData, 1, " ")
+      
+      type     est chaine = ExtraitChaîne( sLigneData, 2, " ")
+      // cas qu'on a des espace avant le type
+      nbEspace est entier = 1
+      tantque type=""
+      	nbEspace++
+      	type  = ExtraitChaîne( sLigneData, nbEspace+1, " ")
+      FIN
+      si type= EOT ALORS
+      	// Erreur
+      	ErreurDéclenche(ERR_COMPILATION_ASM, "type manquant")
+      	renvoyer ""
+      FIN
+      
+      valeurs  est chaine = milieu( sLigneData, taille(label) + taille(type) + nbEspace + 1)
+      si label<>""  ALORS
+      	// on déclare le symbole
+      	// permet d'écrire lea eax,[mesdata]
+      	contexte.onDéclarationLabel(label)
+      FIN
+      
+      // résultat
+      sBufferResultat est chaine
+      
+      // parcourt des valeur
+      POUR TOUTE CHAÎNE sValeur DE valeurs SÉPARÉE PAR ","
+      	// test conversion en chaine
+      	sValeurI  est chaine = SansEspace(sValeur,sscGauche+sscDroite)
+      	nValeur est un entier sur 8 octets sans signe 
+      	si pas bEstValeurImmediate(sValeurI, nValeur) ALORS
+      		ErreurDéclenche(ERR_COMPILATION_ASM, ChaîneConstruit("<%1> n'est pas un littéral valide",sValeur))
+      		renvoyer ""
+      	FIN
+      	// ajout au résultat
+      	selon type 
+      		cas "byte"
+      			sBufferResultat += caract( nValeur )
+      		cas "word"
+      			sBufferResultat += uint16VersbufferLowEndian( nValeur )	
+      		CAS "dword"
+      			sBufferResultat += uint32VersbufferLowEndian( nValeur )			
+      		cas "qword"
+      			sBufferResultat += uint64VersbufferLowEndian( nValeur )
+      		AUTRE CAS
+      			ErreurDéclenche(ERR_COMPILATION_ASM, ChaîneConstruit("type <%1> non géré",type))
+      			renvoyer ""
+      	FIN
+      	
+      FIN
+      
+      renvoyer sBufferResultat
+      	
+     type : 458752
+  procedure_templates : []
+  property_templates : []
+ code_parameters :
+  internal_properties : BgAAAAYAAAA6ih3UbgNXHwTtiPSFUEj+2fi/m7v4QV2rqidAupM=
+  original_name : Classe1
+resources :
+ string_res :
+  identifier : 0x1b654a130030bb60
+  internal_properties : BgAAAAYAAAAnMYFQ1bL/vz9ehh7L22SNNSlIzGTOI8h5F/WtgDNP
+  strings :
+   -
+     text :
+      fr-FR : Aucune syntaxe trouvée pour '%1'.
+     index : 0
+   -
+     text :
+      fr-FR : ocpde <%1> invalide.
+     index : 1
+   -
+     text :
+      fr-FR : Erreur de syntaxe
+     index : 2
+   -
+     text :
+      fr-FR : "Erreur a la ligne %1 : %2\r\n%3"
+     index : 3
+   -
+     text :
+      fr-FR : "Erreur a la ligne %1 : Le label <%2> n'a pas été défini."
+     index : 4
+   -
+     text :
+      fr-FR : Taille des paramètres incompatible.
+     index : 5
+   -
+     text :
+      fr-FR : "Erreur a la ligne %1 : Le label <%2> n'a pas été défini."
+     index : 6
+   -
+     text :
+      fr-FR : "Erreur a la ligne %1 : %2\r\n%3"
+     index : 7
+   -
+     text :
+      fr-FR : Aucune syntaxe trouvée pour '%1'.
+     index : 8
+custom_note :
+ internal_properties : BgAAAAYAAABtB9HWVzrXO2+4NDRVK0vmzaNKrCKqH1DBX30lMmGZ
